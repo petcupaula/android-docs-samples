@@ -63,25 +63,12 @@ public class ApiFragment extends Fragment {
     public interface Callback {
 
         /**
-         * Called when an "entities" API request is complete.
-         *
-         * @param entities The entities.
-         */
-        void onEntitiesReady(EntityInfo[] entities);
-
-        /**
          * Called when a "sentiment" API request is complete.
          *
          * @param sentiment The sentiment.
          */
         void onSentimentReady(SentimentInfo sentiment);
 
-        /**
-         * Called when a "syntax" API request is complete.
-         *
-         * @param tokens The tokens.
-         */
-        void onSyntaxReady(TokenInfo[] tokens);
     }
 
     private static final String TAG = "ApiFragment";
@@ -131,20 +118,6 @@ public class ApiFragment extends Fragment {
         startWorkerThread();
     }
 
-    public void analyzeEntities(String text) {
-        try {
-            // Create a new entities API call request and add it to the task queue
-            mRequests.add(mApi
-                    .documents()
-                    .analyzeEntities(new AnalyzeEntitiesRequest()
-                            .setDocument(new Document()
-                                    .setContent(text)
-                                    .setType("PLAIN_TEXT"))));
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to create analyze request.", e);
-        }
-    }
-
     public void analyzeSentiment(String text) {
         try {
             mRequests.add(mApi
@@ -153,21 +126,6 @@ public class ApiFragment extends Fragment {
                             .setDocument(new Document()
                                     .setContent(text)
                                     .setType("PLAIN_TEXT"))));
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to create analyze request.", e);
-        }
-    }
-
-    public void analyzeSyntax(String text) {
-        try {
-            mRequests.add(mApi
-                    .documents()
-                    .annotateText(new AnnotateTextRequest()
-                            .setDocument(new Document()
-                                    .setContent(text)
-                                    .setType("PLAIN_TEXT"))
-                            .setFeatures(new Features()
-                                    .setExtractSyntax(true))));
         } catch (IOException e) {
             Log.e(TAG, "Failed to create analyze request.", e);
         }
@@ -201,22 +159,7 @@ public class ApiFragment extends Fragment {
 
     private void deliverResponse(GenericJson response) {
         final Activity activity = getActivity();
-        if (response instanceof AnalyzeEntitiesResponse) {
-            final List<Entity> entities = ((AnalyzeEntitiesResponse) response).getEntities();
-            final int size = entities.size();
-            final EntityInfo[] array = new EntityInfo[size];
-            for (int i = 0; i < size; i++) {
-                array[i] = new EntityInfo(entities.get(i));
-            }
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (mCallback != null) {
-                        mCallback.onEntitiesReady(array);
-                    }
-                }
-            });
-        } else if (response instanceof AnalyzeSentimentResponse) {
+        if (response instanceof AnalyzeSentimentResponse) {
             final SentimentInfo sentiment = new SentimentInfo(((AnalyzeSentimentResponse) response)
                     .getDocumentSentiment());
             activity.runOnUiThread(new Runnable() {
@@ -224,21 +167,6 @@ public class ApiFragment extends Fragment {
                 public void run() {
                     if (mCallback != null) {
                         mCallback.onSentimentReady(sentiment);
-                    }
-                }
-            });
-        } else if (response instanceof AnnotateTextResponse) {
-            final List<Token> tokens = ((AnnotateTextResponse) response).getTokens();
-            final int size = tokens.size();
-            final TokenInfo[] array = new TokenInfo[size];
-            for (int i = 0; i < size; i++) {
-                array[i] = new TokenInfo(tokens.get(i));
-            }
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (mCallback != null) {
-                        mCallback.onSyntaxReady(array);
                     }
                 }
             });
